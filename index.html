@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>SQL Chatbot — Claude + Postgres</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body{font-family:system-ui,Segoe UI,Arial;max-width:900px;margin:40px auto;padding:0 16px}
+    h1{margin:0 0 8px}
+    .desc{color:#555;margin-bottom:16px}
+    form{display:flex;gap:8px;margin-bottom:16px}
+    input[type=text]{flex:1;padding:10px;border:1px solid #ccc;border-radius:8px}
+    button{padding:10px 14px;border:0;background:#111;color:#fff;border-radius:8px;cursor:pointer}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    pre{background:#f6f8fa;border:1px solid #eaeef2;border-radius:8px;padding:12px;overflow:auto}
+    table{border-collapse:collapse;width:100%;margin-top:8px}
+    th,td{border:1px solid #e0e0e0;padding:8px;text-align:left}
+    .muted{color:#666;font-size:12px}
+    .err{color:#b00020;font-weight:600}
+  </style>
+</head>
+<body>
+  <h1>SQL Chatbot</h1>
+  <div class="desc">
+    Ask questions about your dataset. The bot generates <b>SELECT-only</b> SQL and runs it safely.
+  </div>
+
+  <!-- Sample questions -->
+  <div class="chips" id="samples"></div>
+
+  <form id="f">
+    <input id="q" type="text" placeholder="e.g., Show total sales by country" required />
+    <button id="go" type="submit">Run</button>
+  </form>
+
+  <div id="status" class="muted"></div>
+  <div id="answer" class="muted" style="margin:8px 0 0 0"></div>
+  <pre id="sql"></pre>
+  <div id="error" class="err"></div>
+  <div id="table"></div>
+
+  <script>
+    const samples = [
+      "Show the first 2 rows",
+      "Show total sales by country",
+      "Top 10 products by total sales amount",
+      "Monthly sales trend for 2011",
+      "Average unit price per country",
+      "Orders with quantity > 10, first 20 rows"
+    ];
+
+    const chipsEl = document.getElementById('samples');
+    samples.forEach(text => {
+      const b = document.createElement('button');
+      b.className = 'chip';
+      b.type = 'button';
+      b.textContent = text;
+      b.onclick = () => { document.getElementById('q').value = text; document.getElementById('f').dispatchEvent(new Event('submit')); };
+      chipsEl.appendChild(b);
+    });
+
+    const f = document.getElementById('f');
+    const q = document.getElementById('q');
+    const go = document.getElementById('go');
+  const statusEl = document.getElementById('status');
+  const answerEl = document.getElementById('answer');
+  const sqlEl = document.getElementById('sql');
+  const errEl = document.getElementById('error');
+  const tableEl = document.getElementById('table');
+
+    f.addEventListener('submit', async (e) => {
+      e.preventDefault();
+  errEl.textContent = '';
+  sqlEl.textContent = '';
+  tableEl.innerHTML = '';
+  answerEl.textContent = '';
+  statusEl.textContent = 'Thinking...';
+  go.disabled = true;
+
+      const fd = new FormData();
+      fd.append('message', q.value);
+
+      try {
+        const resp = await fetch('/chat', { method: 'POST', body: fd });
+        const data = await resp.json();
+        sqlEl.textContent = (data.sql || '').toString();
+        answerEl.textContent = data.answer ? data.answer : '';
+
+        if (data.error) {
+          errEl.textContent = data.error;
+          statusEl.textContent = 'Error';
+        } else if ((data.columns || []).length) {
+          const cols = data.columns;
+          const rows = data.rows || [];
+          const thead = '<thead><tr>' + cols.map(c=>`<th>${c}</th>`).join('') + '</tr></thead>';
+          const tbody = '<tbody>' + rows.map(r => `<tr>${r.map(v=>`<td>${(v===null?'NULL':v)}</td>`).join('')}</tr>`).join('') + '</tbody>';
+          tableEl.innerHTML = `<table>${thead}${tbody}</table>`;
+          statusEl.textContent = `Rows: ${rows.length}`;
+        } else {
+          statusEl.textContent = 'No rows returned.';
+        }
+      } catch (e) {
+        errEl.textContent = 'Network error: ' + e;
+        statusEl.textContent = 'Error';
+      } finally {
+        go.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
