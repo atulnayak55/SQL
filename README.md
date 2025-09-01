@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Natural Language to SQL Chatbot
 
 A production-ready chatbot that translates plain English questions into safe, executable SQL queries for a PostgreSQL database using AWS Bedrock (Claude) and FastAPI. Enables non-technical users to access business data and insights through a simple web interface.
@@ -57,3 +58,7 @@ MIT License
 
 ---
 Feel free to open issues or contribute!
+=======
+# SQL
+A chatbot that lets users ask business questions in plain English and get answers from a PostgreSQL database. Uses AWS Bedrock (Claude) and FastAPI to convert natural language to safe SQL, with error handling and a web UI for easy, secure data access.
+>>>>>>> 3359443d1b6a538e77cdb098d9a425c9f0a1438b
